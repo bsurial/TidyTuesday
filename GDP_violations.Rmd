@@ -1,0 +1,151 @@
+---
+title: "TidyTuesday Week 17 - 2020"
+author: "Bernard Surial"
+date: "4/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(glue)
+library(ggimage)
+library(extrafont)
+library(ggtext)
+theme_set(theme_classic(base_family = "Source Sans Pro"))
+```
+
+
+
+```{r}
+# Get the Data
+
+gdpr_violations <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv')
+gdpr_text <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_text.tsv')
+
+violations <- gdpr_violations %>% 
+  mutate(date = lubridate::mdy(date))
+```
+
+
+
+```{r}
+violations %>% 
+  select(price, name, controller, summary)
+
+violations %>% 
+  count(name, sort = TRUE) %>% 
+  mutate(name = fct_reorder(name, n)) %>% 
+  ggplot(aes(y = name, x = n)) + 
+  geom_point() + 
+  labs(x = "Total number of GDPR violations", 
+       y = "")
+
+new_picture <- function(picture) {
+  picture <- str_remove(picture, "https://www.privacyaffairs.com/wp-content/uploads/2019/[0-9][0-9]/")
+  picture <- str_replace(picture, ".svg$", ".png")
+  glue("/flags/{picture}")
+}
+
+# Convert svg to png and store locally
+# walk(unique(violations$picture)[25], ~rsvg::rsvg_png(.x, new_picture(.x)))
+
+violations <- violations %>% 
+  mutate(picture2 = new_picture(picture)) %>% 
+  mutate(name2 = glue("<img src = '{picture2}' width = '10' /> &nbsp; **{name}**"))
+
+
+violations %>% 
+  filter(date != dmy("01.01.1970")) %>% 
+  add_count(name2) %>% 
+  mutate(name2 = fct_lump(name2, 7, other_level = "&nbsp; **Other**")) %>% 
+  mutate(name2 = fct_reorder(name2, -n)) %>% 
+  mutate(date = floor_date(date, "1 month")) %>% 
+  count(date, name2) %>% 
+  ggplot(aes(x = date, y = n)) + 
+  geom_line(color = "#F29C00", size = 1) +
+  # geom_image(aes(x = dmy("20.02.2018"), y = 15, image = picture), size = 0.1, asp = 2.5) +
+  expand_limits(y = c(0, 0)) + 
+  facet_wrap(~name2, ncol = 2) +
+  labs(title = "Number of <span style='color: #C4244A'>GDPR violations</span> over time\n", 
+       x = NULL,  y = NULL, subtitle = "Showing the countries with the most cumulative violations",
+       caption = "\nVisualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **b_surial** | Data by PRIVACY Affairs") + 
+  scale_y_continuous(breaks = seq(0, 20, 5)) + 
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year",
+               minor_breaks = c(dmy("01.07.2018"), dmy("01.07.2019")), 
+               limits = c(dmy("01.01.2018"), dmy("01.04.2020"))) + 
+  ggthemes::scale_color_pander(guide = FALSE) + 
+  ggthemes::theme_few(base_family = "PT Sans") + 
+  theme(strip.text = element_markdown(vjust = 0.5, hjust = 0, colour = "grey80", size = 12),
+        strip.background = element_rect(fill = NA), 
+        strip.placement = "outside",
+        plot.background = element_rect(fill = "grey20"),
+        panel.background = element_rect(fill = "grey20"),
+        plot.title = element_markdown(color = "grey80", face = "bold", size = 20, hjust = 0),
+        plot.title.position = "plot",
+        axis.text = element_text(color = "grey80"),
+        plot.caption = element_markdown(color = "grey80", hjust = 0.5),
+        plot.subtitle = element_text(color = "grey70"))
+```
+
+```{r}
+  
+titles <- gdpr_text %>% 
+  select(article, article_title) %>% 
+  distinct()
+
+violations %>% 
+  mutate(article_violated = str_extract_all(article_violated, "Art.? [0-9][0-9]?")) %>% 
+  mutate(n_articles = map_dbl(article_violated, length)) %>% 
+  unnest(article_violated) %>% 
+  extract(article_violated, "article", regex = "([0-9][0-9]?)", convert = TRUE, remove = FALSE) %>% 
+  count(article, sort = TRUE) %>% 
+  left_join(titles) %>% 
+  mutate(article = factor(article),
+         article = fct_reorder(article, n)) %>% 
+  ggplot(aes(y = article, x = n)) + 
+  geom_point()
+  
+  
+violations %>% 
+  group_by(name2) %>% 
+  summarise(n = n(),
+            avg_fine = mean(price),
+            sum_fine = sum(price)) %>% 
+  arrange(desc(avg_fine)) %>% 
+  mutate(rank = row_number()) %>% 
+  filter(rank %in% 1:10) %>% 
+  mutate(n2 = if_else(rank == 10, glue("{n} fines"), as.character(n))) %>% 
+  mutate(name2 = fct_reorder(name2, avg_fine)) %>% 
+  ggplot(aes(x = avg_fine, y = name2)) + 
+  geom_point(aes(size = n), color = "#ffc205", alpha = 0.4) +
+  geom_point(aes(size = n), color = "#FFC205", shape = 21) + 
+  geom_text(aes(label = n2), nudge_x = 0.07, size = 4, 
+            family = "Alegreya Sans Italic", hjust = 0,
+            color = "grey70") + 
+    labs(title = "Average <span style='color: #C4244A'>GDPR violation</span> fines per country\n", 
+       y = NULL,  x = "Average fine\n", 
+       subtitle = "Showing the **TOP 10** countries with the highest average fine",
+       caption = "\nVisualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **b_surial** | Data by PRIVACY Affairs") + 
+  scale_x_log10(label = scales::dollar_format(prefix = "", suffix = "\u20ac"), name = "\nAverage fine") + 
+  ggthemes::theme_few(base_family = "Source Sans Pro") +
+  theme(axis.text.y = element_markdown(),
+        plot.background = element_rect(fill = "grey20"),
+        panel.background = element_rect(fill = "grey20"),
+        plot.title = element_markdown(color = "grey80", face = "bold", size = 20, hjust = 0),
+        plot.title.position = "plot",
+        axis.text = element_text(color = "grey80", hjust = 1),
+        axis.title = element_text(color = "grey80", face = "bold"),
+        plot.caption = element_markdown(color = "grey80", hjust = 0.5, margin = margin(15,0,0,0)),
+        plot.subtitle = element_markdown(color = "grey70"),
+        panel.grid.major.y = element_line(color = "#FFC205", linetype = 3, size = 0.1),
+        legend.position = "None")
+
+
+ggsave("plots/GDPRviolations_point.png")
+```
+
