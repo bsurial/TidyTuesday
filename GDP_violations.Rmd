@@ -130,7 +130,7 @@ violations %>%
     labs(title = "Average <span style='color: #C4244A'>GDPR violation</span> fines per country\n", 
        y = NULL,  x = "Average fine\n", 
        subtitle = "Showing the **TOP 10** countries with the highest average fine",
-       caption = "\nVisualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **b_surial** | Data by PRIVACY Affairs") + 
+       caption = "\nVisualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **@b_surial** | Data by PRIVACY Affairs") + 
   scale_x_log10(label = scales::dollar_format(prefix = "", suffix = "\u20ac"), name = "\nAverage fine") + 
   ggthemes::theme_few(base_family = "Source Sans Pro") +
   theme(axis.text.y = element_markdown(),
@@ -138,7 +138,7 @@ violations %>%
         panel.background = element_rect(fill = "grey20"),
         plot.title = element_markdown(color = "grey80", face = "bold", size = 20, hjust = 0),
         plot.title.position = "plot",
-        axis.text = element_text(color = "grey80", hjust = 1),
+        axis.text = element_text(color = "grey80"),
         axis.title = element_text(color = "grey80", face = "bold"),
         plot.caption = element_markdown(color = "grey80", hjust = 0.5, margin = margin(15,0,0,0)),
         plot.subtitle = element_markdown(color = "grey70"),
