@@ -48,11 +48,11 @@ violations %>%
 new_picture <- function(picture) {
   picture <- str_remove(picture, "https://www.privacyaffairs.com/wp-content/uploads/2019/[0-9][0-9]/")
   picture <- str_replace(picture, ".svg$", ".png")
-  glue("/flags/{picture}")
+  glue("flags/{picture}")
 }
 
-# Convert svg to png and store locally
-# walk(unique(violations$picture)[25], ~rsvg::rsvg_png(.x, new_picture(.x)))
+# Convert svg to png and store locally since svg is not supported by ggtext.
+# walk(unique(violations$picture), ~rsvg::rsvg_png(.x, new_picture(.x)))
 
 violations <- violations %>% 
   mutate(picture2 = new_picture(picture)) %>% 
