@@ -149,3 +149,41 @@ violations %>%
 ggsave("plots/GDPRviolations_point.png")
 ```
 
+```{r}
+violations %>% 
+  group_by(name) %>% 
+  mutate(med_price = median(price)) %>% 
+  ungroup() %>% 
+  arrange(desc(med_price)) %>% 
+  mutate(rank = dense_rank(-med_price)) %>% 
+  filter(rank %in% 1:10) %>% 
+  filter(price > 0) %>% 
+  mutate(name2 = fct_reorder(name2, med_price)) %>% 
+  ggplot(aes(x = price+1, y = name2)) + 
+  geom_crossbar(aes(x = med_price, color = name2, xmin = med_price, xmax = med_price), size = 0.2, width = 0.4, alpha = 0.8) + 
+  geom_jitter(aes(color = name2), size = 1,
+              position = position_jitter(seed = 2, height = 0.1),
+              alpha = 0.4) +
+  geom_jitter(aes(color = name2), size = 1,
+              position = position_jitter(seed = 2, height = 0.1),
+              shape = 21, alpha = 0.7) + 
+  labs(title = "<span style='color: #C4244A'>GDPR violation</span> fined per country\n", 
+       y = NULL,  x = "Average fine\n", 
+       subtitle = "Showing the **TOP 10** countries with the highest median fine",
+       caption = "\nVisualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **@b_surial** | Data by PRIVACY Affairs") +
+  paletteer::scale_color_paletteer_d(palette = "ggthemes::hc_darkunica") + 
+  scale_x_log10(label = scales::dollar_format(prefix = "", suffix = "\u20ac"), name = "Fines") + 
+  ggthemes::theme_few(base_family = "Source Sans Pro") +
+  theme(axis.text.y = element_markdown(),
+        plot.background = element_rect(fill = "grey20"),
+        panel.background = element_rect(fill = "grey20"),
+        plot.title = element_markdown(color = "grey80", face = "bold", size = 20, hjust = 0),
+        plot.title.position = "plot",
+        axis.text = element_text(color = "grey80"),
+        axis.title = element_text(color = "grey80", face = "bold"),
+        plot.caption = element_markdown(color = "grey80", hjust = 0.5, margin = margin(15,0,0,0)),
+        plot.subtitle = element_markdown(color = "grey70"),
+        panel.grid.major.x = element_line(color = "grey70", linetype = 3, size = 0.1),
+        legend.position = "None")
+```
+
