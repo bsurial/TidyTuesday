@@ -160,7 +160,7 @@ violations %>%
   filter(price > 0) %>% 
   mutate(name2 = fct_reorder(name2, med_price)) %>% 
   ggplot(aes(x = price+1, y = name2)) + 
-  geom_crossbar(aes(x = med_price, color = name2, xmin = med_price, xmax = med_price), size = 0.2, width = 0.4, alpha = 0.8) + 
+  geom_crossbar(aes(x = med_price, color = name2, xmin = med_price, xmax = med_price), size = 0.1, width = 0.4, alpha = 0.01) + 
   geom_jitter(aes(color = name2), size = 1,
               position = position_jitter(seed = 2, height = 0.1),
               alpha = 0.4) +
@@ -183,7 +183,14 @@ violations %>%
         axis.title = element_text(color = "grey80", face = "bold"),
         plot.caption = element_markdown(color = "grey80", hjust = 0.5, margin = margin(15,0,0,0)),
         plot.subtitle = element_markdown(color = "grey70"),
+        panel.border = element_blank(), 
+        axis.line = element_blank(), 
+        axis.ticks = element_blank(),
         panel.grid.major.x = element_line(color = "grey70", linetype = 3, size = 0.1),
         legend.position = "None")
+
+ggsave("plots/GDPRviolations_jitter.png", width = 7, height = 6)
+
 ```
+
 
