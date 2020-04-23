@@ -1,0 +1,172 @@
+---
+title: "Untitled"
+author: "Bernard Surial"
+date: "4/23/2020"
+output: html_document
+---
+
+```{r}
+library(knitr)
+library(tidyverse)
+theme_set(theme_light())
+```
+
+```{r}
+
+gdpr_raw <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv')
+gdpr_text <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_text.tsv')
+
+```
+
+```{r}
+gdpr_raw <- gdpr_raw %>% 
+  mutate(date = lubridate::mdy(date))
+
+
+gdpr_raw %>% 
+  ggplot(aes(price + 1)) + 
+  geom_histogram() + 
+  scale_x_log10(labels = scales::dollar_format(prefix = "€")) + 
+  labs(x = "GDPR fines", y= "Number of violations")
+```
+
+```{r}
+gdpr_tidy <- gdpr_raw %>% 
+  transmute(id, 
+            price, 
+            country = name, 
+            article_violated,
+            articles = str_extract_all(article_violated, 
+                                       "Art. [:digit:]+|Art.[:digit:]+")) %>% 
+  mutate(total_articles = map_int(articles, length)) %>% 
+  unnest(articles) %>% 
+  add_count(articles) %>% 
+  filter(n > 10) %>% 
+  select(-n)
+```
+
+```{r}
+library(ggbeeswarm)
+
+gdpr_tidy %>% 
+  mutate(articles = str_replace_all(articles, "Art.", "Article "),
+         articles = fct_reorder(articles, price)) %>% 
+  ggplot(aes(articles, price+1, color = articles)) + 
+  geom_boxplot(aes(fill = articles), alpha = 0.2, outlier.color = NA) + 
+  geom_quasirandom() + 
+  scale_y_log10(labels = scales::dollar_format(prefix = "€")) + 
+  labs(x = NULL, y = "GDPR fine") + 
+  theme(legend.position = "None")
+
+gdpr_violations <- gdpr_tidy %>% 
+  mutate(value = 1) %>% 
+  select(-article_violated) %>% 
+  pivot_wider(names_from = articles, values_from = value,
+              values_fn = list(value = max), 
+              values_fill = list(value = 0)) %>% 
+  janitor::clean_names()
+```
+
+
+```{r}
+library(tidymodels)
+
+gdpr_rec <- recipe(price ~ ., data = gdpr_violations) %>% 
+  update_role(id, new_role = "id") %>% 
+  step_log(price, base = 10, offset = 1, skip = TRUE) %>% 
+  step_other(country, other = "Other") %>% 
+  step_dummy(all_nominal()) %>% 
+  step_zv(all_predictors())
+
+gdpr_prep <- prep(gdpr_rec)
+```
+
+```{r}
+gdpr_wf <- workflow() %>% 
+  add_recipe(gdpr_rec) %>% 
+  add_model(linear_reg() %>% 
+              set_engine("lm"))
+```
+
+```{r}
+gdpr_fit <- gdpr_wf %>% 
+  fit(data = gdpr_violations)
+gdpr_fit
+```
+
+```{r}
+gdpr_fit %>% 
+  pull_workflow_fit() %>% 
+  tidy() %>% 
+  filter(p.value < 0.1)
+```
+
+```{r}
+new_gdpr <- crossing(country = "Other", 
+         art_5 = 0:1, 
+         art_6 = 0:1, 
+         art_13 = 0:1,
+         art_32 = 0:1,
+         art_15 = 0:1) %>% 
+  mutate(total_articles = art_5 + art_6 + art_13 + art_15 + art_32, 
+         id = row_number())
+```
+
+```{r}
+mean_pred <- predict(gdpr_fit, 
+        new_data = new_gdpr)
+
+conf_int_pred <- predict(gdpr_fit, 
+        new_data = new_gdpr,
+        type = "conf_int")
+
+gdpr_res <- new_gdpr %>% 
+  bind_cols(mean_pred) %>% 
+  bind_cols(conf_int_pred)
+
+```
+      
+```{r}
+library(ggtext)
+gdpr_res %>% 
+  filter(total_articles == 1) %>% 
+  pivot_longer(art_5:art_15) %>% 
+  filter(value > 0) %>% 
+  mutate(name = str_replace_all(name, "art_", "Article "),
+         name = fct_reorder(name, .pred)) %>% 
+  ggplot(aes(name, 10^ .pred, color = name)) + 
+  geom_errorbar(aes(ymin = 10^ .pred_lower, 
+                    ymax = 10^ .pred_upper), 
+                width = 0.2, alpha = 0.7) + 
+  geom_point(size = 3, shape = 15)  + 
+  scale_y_log10(labels = scales::dollar_format(prefix = "€", 
+                                               accuracy = 1)) + 
+  labs(x = NULL, y = NULL,
+       title = "Mean <span style='color: #C4244A'>**GDPR violations**</span> fined per Article", 
+       subtitle = "Error bars are predicted 95% confidence intervals",
+       caption = "<br>Visualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' /> &nbsp; **@b_surial** &nbsp; | &nbsp; Data by PRIVACY Affairs") + 
+  paletteer::scale_color_paletteer_d(palette = "ggthemes::hc_darkunica") + 
+  coord_flip() + 
+  ggthemes::theme_few(base_family = "Source Sans Pro") +
+  theme(axis.text.y = element_markdown(),
+        plot.background = element_rect(fill = "grey20"),
+        panel.background = element_rect(fill = "grey20"),
+        plot.title = element_markdown(color = "grey80", face = "bold", size = 20, hjust = 0),
+        plot.title.position = "plot",
+        axis.text = element_text(color = "grey80"),
+        axis.title = element_text(color = "grey80", face = "bold"),
+        plot.caption = element_markdown(color = "grey80", hjust = 0.5),
+        plot.subtitle = element_markdown(color = "grey70"),
+        panel.border = element_blank(), 
+        axis.line = element_blank(), 
+        axis.ticks = element_blank(),
+        panel.grid.major.x = element_line(color = "grey70", linetype = 3, size = 0.1),
+        legend.position = "None",
+        plot.margin = ggplot2::margin(30, 30, 30, 30))
+
+ggsave("plots/GDPRviolations_model.png", width = 7, height = 6, dpi = 300)
+```
+
+                                 
+                        
+
