@@ -11,7 +11,6 @@ Code can be found [here](https://github.com/bsurial/TidyTuesday/blob/master/GDP_
 ***
 
 ### Week 2020/20 Volcanic Eruptions
-![./plots/wk20_volcanic_eruptions_map.png]
-(https://raw.githubusercontent.com/bsurial/TidyTuesday/master/plots/wk20_volcanic_eruptions_map.png)
+![./plots/wk20_volcanic_eruptions_map.png](https://raw.githubusercontent.com/bsurial/TidyTuesday/master/plots/wk20_volcanic_eruptions_map.png)
 
 Code can be found [here](https://github.com/bsurial/TidyTuesday/blob/master/Volcano_eruptions.Rmd)
