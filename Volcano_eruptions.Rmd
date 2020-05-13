@@ -93,6 +93,15 @@ world %>%
                                         size = 8),
         plot.margin = margin(8,10,8,10, unit = "mm")) 
 
-ggsave("plots/wk20_volcanic_eruptions_map.png", dpi = 300, width = 10, height = 9)
+ggsave("plots/wk20_volcanic_eruptions_map.png", dpi = 300, width = 10, height = 6)
+```
+
+
+```{r}
+library(magick)
+# Remove white border
+graph <- image_read("plots/wk20_volcanic_eruptions_map.png")
+graph <- image_trim(graph)
+image_write(graph, "plots/wk20_volcanic_eruptions_map.png")
 ```
 
