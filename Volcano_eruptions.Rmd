@@ -1,0 +1,98 @@
+---
+title: "Week 20 - Volcano Eruptions"
+author: "Bernard Surial"
+date: "5/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(ggtext)
+```
+
+```{r}
+tt <- tidytuesdayR::tt_load(2020, week = 20)
+```
+
+```{r}
+v <- tt$volcano
+er <- tt$eruptions
+ev <- tt$events
+```
+
+```{r}
+library(rnaturalearth)
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+eruptions <- er %>% 
+  filter(str_detect(eruption_category, "Confirmed")) %>% 
+  count(volcano_number, latitude, longitude) %>% 
+  left_join(v %>% select(volcano_number, volcano_name, latitude, longitude)) %>% 
+  mutate(volcano_number = factor(volcano_number)) %>% 
+  mutate(volcano_number = fct_reorder(volcano_number, n))
+
+label <- eruptions %>% 
+  arrange(volcano_number) %>% 
+  arrange(desc(n)) %>% 
+  mutate(rank = row_number()) %>% 
+  filter(rank %in% 1:5) %>% 
+  mutate(volcano_name = if_else(str_detect(volcano_name, ","), 
+                                           "Piton de la Fournaise", volcano_name))
+  
+
+world %>% 
+  ggplot() + 
+  geom_sf(fill = "#061A21FF", color = NA) +
+  geom_point(aes(longitude, latitude, color = n, size = n), 
+             data = eruptions,
+             alpha = 0.7) + 
+  ggrepel::geom_text_repel(aes(longitude, latitude, label = volcano_name),
+                            data = filter(label, volcano_name %in% c("Etna", 
+                                                                     "Asosan", 
+                                                                     "Asamayama")),
+                            point.padding = 0.3,
+                            color = "#FEF6B5FF",
+                            alpha = 0.8, direction = "both",
+                            ylim = 80,
+                            family = "Roboto Condensed") + 
+    ggrepel::geom_text_repel(aes(longitude, latitude, label = volcano_name),
+                            data = filter(label, !(volcano_name %in% c("Etna", 
+                                                                     "Asosan", 
+                                                                     "Asamayama"))),
+                            point.padding = 0.3,
+                            color = "#FEF6B5FF",
+                            alpha = 0.8, direction = "both",
+                            ylim = -80,
+                            family = "Roboto Condensed") + 
+  scale_color_viridis_c(trans = "log10", option = "magma") + 
+  theme_void(base_family = "Roboto Condensed") + 
+  labs(x = NULL, y = NULL,
+       color = "Number of Confirmed Eruptions",
+       title = "Volcanic <span style = 'color:#FEF6B5FF'>Hotspots</span> Worldwide",
+       subtitle = "<br>Visualization by <img src = 'Twitter_bird_logo_2012.png' width = '8' />@b_surial | Data by *The Smithsonian Institution*") + 
+  guides(color = guide_colorbar(title.position = "top",
+                               direction = "horizontal",
+                               title.hjust = 0.5,
+                               barheight = 0.5,
+                               barwidth = 14,
+                               title.theme = element_text(family = "Roboto Condensed",
+                                                          size = 12, color = "white"),
+                               label.theme = element_text(family = "Roboto Condensed", 
+                                                          size = 9, color = "white")),
+         size = FALSE) +
+  theme(plot.background = element_rect(fill = "#132E41FF", color = NA), 
+        legend.position = "bottom",
+        plot.title = element_markdown(hjust = 0, color = "white",
+                                  face = "bold", size = 18),
+        panel.background = element_rect(fill = "#132E41FF", color = NA),
+        plot.subtitle = element_markdown(colour = "white", 
+                                        margin = margin(b = 3, r = 3, unit = "mm"),
+                                        size = 8),
+        plot.margin = margin(8,10,8,10, unit = "mm")) 
+
+ggsave("plots/wk20_volcanic_eruptions_map.png", dpi = 300, width = 10, height = 9)
+```
+
