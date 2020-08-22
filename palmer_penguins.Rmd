@@ -1,0 +1,62 @@
+---
+title: "Palmer Penguins"
+author: "Bernard Surial"
+date: "8/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(palmerpenguins)
+library(ggtext)
+library(see)
+
+df <- penguins
+theme_set(theme_light(base_family = "Source Sans Pro"))
+```
+
+```{r}
+labs <- df %>% 
+  group_by(species) %>% 
+  summarise(median_b = median(bill_length_mm, na.rm = TRUE))
+
+df %>% 
+  drop_na() %>% 
+  ggplot(aes(x= bill_length_mm, y = species)) + 
+  geom_boxplot(position = position_nudge(y =- 0.24),
+               width = 0.1, outlier.shape = NA, fill = "firebrick", alpha = 0.25) + 
+  geom_text(aes(x = median_b, y = species, label = species), data = labs, nudge_y = 0.25,
+            color = "firebrick", family = "Source Sans Pro", fontface = "bold", 
+            size = 7) + 
+  
+  # geom_violin(fill = "grey95", alpha = 0.8, color = "grey50", lwd = 0.1) +
+  geom_jitter(height = 0.08, alpha = 0.75) + 
+  # stat_summary(geom = "point", fun = "median", color = "firebrick", 
+  #              alpha = 0.75, shape = "|", size = 18) +
+  scale_x_continuous(breaks = seq(0, 60, 5)) + 
+  theme(panel.grid = element_blank(), 
+        panel.border = element_blank(), 
+        axis.ticks.y = element_blank(), 
+        axis.line.x = element_line(color = "grey70", size = 0.1),
+        axis.text.y = element_blank(), 
+        axis.title.x = element_text(face = "bold", margin = margin(t = 1.24, b = 1.44, unit = "line",), 
+                                    size = 12),
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold.italic", family = "Lora", size = 40, 
+                                  color = "#004377",
+                                  margin = margin(t = 0.5, b = 0.3, l = 1.24, unit = "line")),
+        plot.subtitle = element_markdown(face = "plain", family = "Lora", size = 14, 
+                                     margin = margin(b = 1.24, unit = "line")),
+        plot.caption = element_markdown(face = "italic", family = "Lora", hjust = 1),
+        plot.margin = margin(1, 1, 1, 1, unit = "cm"),
+        plot.background = element_rect(fill = "white"), 
+        panel.background = element_blank()) + 
+  labs(x = "Bill length (mm)", 
+       y = NULL, title = "Palmer Penguins", 
+       subtitle = "Package by **Allison Hill**", 
+       caption = "Visualization: <span style = 'color: #004377'>**Bernard Surial**</span>")
+
+ggsave("plots/wk31_palmerpenguins.png", dpi = 300, width = 7, height = 7)
+```
+
