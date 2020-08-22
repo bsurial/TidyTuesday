@@ -14,3 +14,9 @@ Code can be found [here](https://github.com/bsurial/TidyTuesday/blob/master/GDP_
 ![./plots/wk20_volcanic_eruptions_map.png](https://raw.githubusercontent.com/bsurial/TidyTuesday/master/plots/wk20_volcanic_eruptions_map.png)
 
 Code can be found [here](https://github.com/bsurial/TidyTuesday/blob/master/Volcano_eruptions.Rmd)
+
+
+### Week 2020/31 Palmer penguins
+![./plots/wk31_palmerpenguins.png](https://raw.githubusercontent.com/bsurial/TidyTuesday/master/plots/wk31_palmerpenguins.png)
+
+Code can be found [here](https://github.com/bsurial/TidyTuesday/blob/master/palmer_penguins.Rmd)
